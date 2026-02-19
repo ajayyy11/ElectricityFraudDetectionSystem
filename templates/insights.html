@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">AI Insights</h2>
+
+<div class="card p-4">
+    <h5>Automated Intelligence Summary</h5>
+    <p>{{ insight }}</p>
+</div>
+
+<div class="card p-4 mt-4">
+    <h5>Prediction</h5>
+    <p>Projected Next Month Usage: <strong>{{ predicted }} kWh</strong></p>
+    <p>Status: {{ anomaly }}</p>
+</div>
+
+{% endblock %}
