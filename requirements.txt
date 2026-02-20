@@ -1,4 +1,5 @@
 Flask
+Flash-Login
 Flask-MySQLdb
 mysqlclient
 numpy

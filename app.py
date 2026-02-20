@@ -3,6 +3,7 @@ from services.scoring import calculate_epi, monthly_change
 from services.prediction import predict_next_usage, detect_anomaly
 from services.insights import generate_insight
 import random
+from flask import jsonify
 from flask import Flask, render_template, redirect, url_for, request
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import csv
@@ -11,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import joblib
 model = joblib.load("fraud_model.pkl")
-
+scaler = joblib.load("scaler.pkl")
 
 # -------------------------
 # App Setup
@@ -162,7 +163,8 @@ def dashboard():
     # ===============================
     # ML FRAUD PREDICTION
     # ===============================
-    fraud_probability = model.predict_proba([[current_usage]])[0][1]
+    scaled_input = scaler.transform([[current_usage, avg_usage]])
+    fraud_probability = model.predict_proba(scaled_input)[0][1]
 
     # Your existing logic
     epi = calculate_epi(current_usage, avg_usage, fraud_probability)
@@ -196,7 +198,7 @@ def dashboard():
     # ===============================
     # FRAUD VS NORMAL
     # ===============================
-    fraud_count = len([r for r in history if r.fraud_probability > 0.2])
+    fraud_count = len([r for r in history if r.fraud_probability > 0.3])
     normal_count = len(history) - fraud_count
 
     # ===============================
@@ -219,9 +221,8 @@ def dashboard():
     # RISK DISTRIBUTION
     # ===============================
     low_risk = len([r for r in history if r.fraud_probability <= 0.3])
-    medium_risk = len([r for r in history if 0.3 < r.fraud_probability <= 0.7])
-    high_risk = len([r for r in history if r.fraud_probability > 0.7])
-
+    medium_risk = len([r for r in history if 0.3 < r.fraud_probability <= 0.6])
+    high_risk = len([r for r in history if r.fraud_probability > 0.6])
     return render_template(
         "dashboard.html",
         epi=epi,
