@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}404 - Not Found{% endblock %}
+{% block content %}
+<div style="text-align:center; padding:64px 24px;">
+    <div style="font-size:120px; font-weight:900; color:rgba(148,163,184,0.1); line-height:1;">404</div>
+    <div style="margin-top:-60px;">
+        <h1 style="font-size:32px; font-weight:800; color:var(--text-bold); margin-bottom:16px;">Page Not Found</h1>
+        <p style="color:var(--text-muted); max-width:400px; margin:0 auto 32px;">The page you're looking for doesn't exist or has been moved to a different sector.</p>
+        <a href="{{ url_for('dashboard.main_dashboard') }}" class="btn btn-primary" style="padding:12px 32px;">Return to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

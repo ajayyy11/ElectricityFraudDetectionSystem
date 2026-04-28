@@ -1,0 +1,173 @@
+{% extends "layout.html" %}
+{% block title %}Admin Control — EFD System{% endblock %}
+{% block page_title %}System Administration{% endblock %}
+{% block page_sub %}Full control over users, security configurations, and network-wide monitoring.{% endblock %}
+
+{% block extra_actions %}
+<div style="display:flex; gap:12px;">
+  <a href="{{ url_for('admin.export_csv') }}" class="btn btn-secondary">
+    <i class="bi bi-download"></i> Export CSV
+  </a>
+  <form action="{{ url_for('admin.reset_database') }}" method="POST" onsubmit="return confirm('WARNING: This will delete ALL users and data. This action cannot be undone. Proceed?');">
+    <button type="submit" class="btn btn-danger" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">
+      <i class="bi bi-trash"></i> Wipe All Data
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Admin Stat Grid -->
+<div class="stat-grid" style="margin-bottom:32px;">
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s" style="background:var(--primary); color:#fff;"><i class="bi bi-people"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s" style="background:var(--accent); color:#fff;"><i class="bi bi-hdd-network"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ total_readings }}</div>
+      <div class="stat-label">Total Logs</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s" style="background:var(--danger); color:#fff;"><i class="bi bi-shield-exclamation"></i></div>
+      <div class="badge badge-high">{{ high_risk_count }}</div>
+    </div>
+    <div>
+      <div class="stat-value">{{ high_risk_count }}</div>
+      <div class="stat-label">Critical Threats</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s" style="background:var(--warning); color:#fff;"><i class="bi bi-lightning-charge"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ total_anomalies }}</div>
+      <div class="stat-label">System Anomalies</div>
+    </div>
+  </div>
+</div>
+
+<!-- User Management -->
+<div class="card table-card" style="margin-bottom:32px;">
+  <div class="table-header">
+    <div class="card-title">User Directory & Status</div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>UID</th>
+        <th>Username</th>
+        <th>Email Address</th>
+        <th>Identity Role</th>
+        <th>Last Activity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td style="color:var(--text-muted); font-family:monospace;">USR_{{ user.id }}</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">{{ user.username[0].upper() }}</div>
+            <span style="font-weight:700;">{{ user.username }}</span>
+          </div>
+        </td>
+        <td style="font-size:13px; color:var(--text-secondary);">{{ user.email or 'Not Set' }}</td>
+        <td>
+          {% if user.role == 'admin' %}
+            <span class="badge" style="background:rgba(99,102,241,0.1); color:var(--primary); border:1px solid rgba(99,102,241,0.2);">Administrator</span>
+          {% else %}
+            <span class="badge" style="background:rgba(0,0,0,0.05); color:var(--text-muted); border:1px solid rgba(0,0,0,0.1);">Consumer</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:var(--text-muted);">Recent Activity</td>
+        <td>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" style="padding:4px 12px; font-size:11px;" onclick="openEditModal('{{ user.id }}', '{{ user.username }}', '{{ user.email }}', '{{ user.role }}')">Edit</button>
+            <form action="{{ url_for('admin.send_usage_email', user_id=user.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-primary" style="padding:4px 12px; font-size:11px;">Notify</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">No users found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center;">
+  <div class="card" style="width:100%; max-width:450px; padding:32px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <div class="card-title" style="margin-bottom:0;">Edit User Profile</div>
+      <button onclick="closeEditModal()" style="background:none; border:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+    </div>
+    <form id="editUserForm" method="POST">
+      <input type="hidden" id="edit_user_id" name="user_id">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="edit_username" name="username" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="edit_email" name="email" class="form-control" required placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>System Role</label>
+        <select id="edit_role" name="role" class="form-control">
+          <option value="user">Consumer</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </div>
+      <div style="margin-top:32px; display:flex; gap:12px;">
+        <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="flex:1;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex:1;">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditModal(id, username, email, role) {
+  document.getElementById('edit_user_id').value = id;
+  document.getElementById('edit_username').value = username;
+  document.getElementById('edit_email').value = email === 'None' ? '' : email;
+  document.getElementById('edit_role').value = role;
+  
+  // Set the form action dynamically
+  document.getElementById('editUserForm').action = "/admin/user/edit/" + id;
+  
+  document.getElementById('editUserModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editUserModal').style.display = 'none';
+}
+
+// Close modal if clicked outside
+window.onclick = function(event) {
+  if (event.target == document.getElementById('editUserModal')) {
+    closeEditModal();
+  }
+}
+</script>
+
+{% endblock %}

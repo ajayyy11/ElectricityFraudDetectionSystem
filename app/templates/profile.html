@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block title %}My Profile — EFD System{% endblock %}
+{% block page_title %}User Account Profile{% endblock %}
+{% block page_sub %}Manage your personal information and application preferences.{% endblock %}
+
+{% block content %}
+
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:32px;">
+  
+  <!-- Profile Sidebar -->
+  <div class="card" style="text-align:center; padding:40px 24px;">
+    <div style="width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--accent)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:800; margin: 0 auto 20px; box-shadow: 0 10px 25px rgba(99,102,241,0.3);">
+      {{ current_user.username[0].upper() }}
+    </div>
+    <h3 style="font-weight:800; color:var(--text-bold); margin-bottom:4px;">{{ current_user.username }}</h3>
+    <span class="badge badge-low" style="padding:4px 12px; border-radius:20px;">{{ current_user.role | capitalize }}</span>
+    
+    <div style="margin-top:32px; display:flex; flex-direction:column; gap:16px; text-align:left;">
+      <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(0,0,0,0.02); border-radius:12px;">
+        <i class="bi bi-envelope" style="color:var(--primary);"></i>
+        <div>
+          <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Email Address</div>
+          <div style="font-size:14px; font-weight:600;">{{ current_user.username }}@provider.com</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(0,0,0,0.02); border-radius:12px;">
+        <i class="bi bi-calendar-check" style="color:var(--accent);"></i>
+        <div>
+          <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Account Status</div>
+          <div style="font-size:14px; font-weight:600; color:var(--accent);">Verified & Active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Form -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:24px;">Security & Contact Settings</div>
+    <form action="{{ url_for('dashboard.self_edit_user') }}" method="POST" style="display:grid; gap:16px;">
+      <div class="form-group">
+        <label>Current Username</label>
+        <input type="text" class="form-control" id="display_username" value="{{ current_user.username }}" disabled style="background:rgba(0,0,0,0.02);">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" name="email" class="form-control" value="{{ current_user.email or '' }}" placeholder="Direct email for notifications" required>
+      </div>
+      <div class="form-group">
+        <label>Role / Access Level</label>
+        <input type="text" class="form-control" value="{{ current_user.role | capitalize }}" disabled style="background:rgba(0,0,0,0.02);">
+      </div>
+      <div style="margin-top:32px; padding-top:24px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <p style="font-size:12px; color:var(--text-muted); max-width:60%;">
+          Your email is used for automated usage reports and security alerts.
+        </p>
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+      </div>
+    </form>
+  </div>
+
+    <!-- Account Summary -->
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title" style="margin-bottom:16px;">Account Summary</div>
+        <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+            <span style="color:var(--text-secondary);">Username</span>
+            <span style="font-weight:600;">{{ current_user.username }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+            <span style="color:var(--text-secondary);">Account Role</span>
+            <span style="font-weight:600;">{{ current_user.role | capitalize }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+            <span style="color:var(--text-secondary);">Member Since</span>
+            <span style="font-weight:600;">{{ member_since }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+            <span style="color:var(--text-secondary);">Energy Readings</span>
+            <span style="font-weight:600;">{{ total_records }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:10px 0;">
+            <span style="color:var(--text-secondary);">Risk Profile</span>
+            <span>
+              {% if avg_fraud > 25 %}
+                <span class="badge badge-high">🔴 High Risk</span>
+              {% elif avg_fraud > 10 %}
+                <span class="badge badge-medium">🟡 Moderate Risk</span>
+              {% else %}
+                <span class="badge badge-low">🟢 Low Risk</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block title %}Risk Analysis — EFD System{% endblock %}
+{% block page_title %}Security & Risk Analysis{% endblock %}
+{% block page_sub %}Deep dive into your account security posture and fraud metrics.{% endblock %}
+
+{% block content %}
+
+<!-- Risk Summary Cards -->
+<div class="stat-grid" style="margin-bottom:28px;">
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-fraud-i"><i class="bi bi-shield-slash"></i></div>
+      <div class="badge {% if fraud > 50 %}badge-high{% elif fraud > 20 %}badge-medium{% else %}badge-low{% endif %}">
+        {% if fraud > 50 %}High{% elif fraud > 20 %}Medium{% else %}Low{% endif %} Risk
+      </div>
+    </div>
+    <div>
+      <div class="stat-value">{{ fraud }}%</div>
+      <div class="stat-label">Fraud Probability</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-epi-i"><i class="bi bi-graph-up-arrow"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ epi }}</div>
+      <div class="stat-label">Security Score (EPI)</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-alert-i"><i class="bi bi-exclamation-triangle"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ active_alerts }}</div>
+      <div class="stat-label">Security Alerts</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-usage-i"><i class="bi bi-crystal-ball"></i></div>
+    </div>
+    <div>
+      <div class="stat-value">{{ predicted }} <small style="font-size:12px;">kWh</small></div>
+      <div class="stat-label">AI Forecast Usage</div>
+    </div>
+  </div>
+</div>
+
+<!-- Risk Distribution Chart -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
+  <div class="card">
+    <div class="card-title">Risk Level Distribution</div>
+    <div class="chart-wrapper" style="margin-top:20px;">
+      <canvas id="riskDonut"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Security Breakdown</div>
+    <div style="display:flex; flex-direction:column; gap:20px; margin-top:24px;">
+
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">Secure Transactions</span>
+          <span style="font-size:13px; font-weight:800; color:var(--accent);">{{ low_risk }}</span>
+        </div>
+        <div style="height:8px; background:#eff6ff; border-radius:10px; overflow:hidden;">
+          {% set low_pct = ((low_risk / (total_records + 0.1)) * 100)|round %}
+          <div style="width:{{ low_pct }}%; height:100%; background:var(--accent);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">Suspicious Activity</span>
+          <span style="font-size:13px; font-weight:800; color:var(--warning);">{{ medium_risk }}</span>
+        </div>
+        <div style="height:8px; background:#eff6ff; border-radius:10px; overflow:hidden;">
+          {% set med_pct = ((medium_risk / (total_records + 0.1)) * 100)|round %}
+          <div style="width:{{ med_pct }}%; height:100%; background:var(--warning);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">Flagged Fraud</span>
+          <span style="font-size:13px; font-weight:800; color:var(--danger);">{{ high_risk }}</span>
+        </div>
+        <div style="height:8px; background:#eff6ff; border-radius:10px; overflow:hidden;">
+          {% set high_pct = ((high_risk / (total_records + 0.1)) * 100)|round %}
+          <div style="width:{{ high_pct }}%; height:100%; background:var(--danger);"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Anomaly Status Card -->
+<div class="card">
+  <div class="card-title">Real-time Anomaly Status</div>
+  <div style="display:flex; align-items:center; gap:24px; margin-top:16px;">
+    <div style="width:64px; height:64px; border-radius:50%; background:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:32px;">
+      {% if 'surge' in anomaly or 'Fraud' in anomaly %}🚨{% elif 'fluctuation' in anomaly %}⚠️{% else %}✅{% endif %}
+    </div>
+    <div>
+      <div style="font-size:20px; font-weight:800; color:var(--text-bold);">{{ anomaly }}</div>
+      <div style="font-size:14px; color:var(--text-muted); margin-top:4px;">
+        Baseline: <b>{{ avg_usage }} kWh</b> | Current: <b>{{ usage }} kWh</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('riskDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Secure', 'Suspicious', 'Flagged'],
+    datasets: [{ 
+      {% set lr = low_risk or 0 %}
+      {% set mr = medium_risk or 0 %}
+      {% set hr = high_risk or 0 %}
+      data: [{{ lr }}, {{ mr }}, {{ hr }}], 
+      backgroundColor: ['#10b981','#f59e0b','#ef4444'], 
+      borderWidth: 0,
+      hoverOffset: 10
+    }]
+  },
+  options: { 
+    responsive: true, 
+    maintainAspectRatio: false, 
+    cutout: '80%',
+    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } 
+  }
+});
+</script>
+{% endblock %}

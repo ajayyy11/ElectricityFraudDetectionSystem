@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+{% block title %}AI Insights — EFD System{% endblock %}
+{% block page_title %}Predictive Intelligence{% endblock %}
+{% block page_sub %}AI-driven analysis of your energy consumption and potential security threats.{% endblock %}
+
+{% block content %}
+
+<!-- Insight Card -->
+<div class="insight-box" style="margin-bottom:32px; padding:32px;">
+  <div class="insight-icon" style="font-size:48px;">🤖</div>
+  <div class="insight-content">
+    <b style="font-size:20px; color:#fff;">Strategic AI Recommendation</b>
+    <span style="font-size:16px; opacity:0.9;">{{ insight }}</span>
+  </div>
+</div>
+
+<!-- Usage vs Predicted -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
+  <div class="card">
+    <div class="card-title">Consumption Benchmarks</div>
+    <div style="display:flex; flex-direction:column; gap:24px; margin-top:24px;">
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">Live Consumption</span>
+          <span style="font-weight:800; color:var(--primary);">{{ usage }} kWh</span>
+        </div>
+        <div style="height:12px; background:#f1f5f9; border-radius:6px; overflow:hidden;">
+          {% set usage_pct = ((usage/500)*100)|round %}
+          <div style="width:{{ usage_pct }}%; height:100%; background:var(--primary);"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">Historical Average</span>
+          <span style="font-weight:800; color:var(--text-muted);">{{ avg_usage }} kWh</span>
+        </div>
+        <div style="height:12px; background:#f1f5f9; border-radius:6px; overflow:hidden;">
+          {% set avg_pct = ((avg_usage/500)*100)|round %}
+          <div style="width:{{ avg_pct }}%; height:100%; background:var(--text-muted);"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700;">AI Target Projection</span>
+          <span style="font-weight:800; color:var(--warning);">{{ predicted }} kWh</span>
+        </div>
+        <div style="height:12px; background:#f1f5f9; border-radius:6px; overflow:hidden;">
+          {% set pred_pct = ((predicted/500)*100)|round %}
+          <div style="width:{{ pred_pct }}%; height:100%; background:var(--warning);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Security Distribution Overview</div>
+    <div style="display:flex; flex-direction:column; gap:16px; margin-top:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:rgba(99,102,241,0.05); border-radius:16px; border:1px solid rgba(99,102,241,0.1);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center;"><i class="bi bi-stack"></i></div>
+          <span style="font-size:14px; font-weight:700;">Analysis Samples</span>
+        </div>
+        <span style="font-size:20px; font-weight:800; color:var(--text-bold);">{{ total_records }}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:rgba(239,68,68,0.05); border-radius:16px; border:1px solid rgba(239,68,68,0.1);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center;"><i class="bi bi-shield-exclamation"></i></div>
+          <span style="font-size:14px; font-weight:700; color:var(--danger);">Threat Events</span>
+        </div>
+        <span style="font-size:20px; font-weight:800; color:var(--danger);">{{ high_risk }}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:rgba(16,185,129,0.05); border-radius:16px; border:1px solid rgba(16,185,129,0.1);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;"><i class="bi bi-shield-check"></i></div>
+          <span style="font-size:14px; font-weight:700; color:var(--accent);">Secure States</span>
+        </div>
+        <span style="font-size:20px; font-weight:800; color:var(--accent);">{{ normal_count }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trend Chart -->
+<div class="card">
+  <div class="card-title">Security Confidence Trend</div>
+  <div class="chart-wrapper" style="margin-top:24px;">
+    <div id="trend-data" style="display:none;" 
+         data-labels='[{% for r in history|reverse %}"#{{ r.id }}"{% if not loop.last %},{% endif %}{% endfor %}]'
+         data-values='[{% for r in history|reverse %}{{ (r.fraud_probability * 100)|round(1) }}{% if not loop.last %},{% endif %}{% endfor %}]'></div>
+    <canvas id="fraudTrendChart"></canvas>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const dataEl = document.getElementById('trend-data');
+  if (!dataEl) return;
+  
+  const labels = JSON.parse(dataEl.dataset.labels);
+  const dataValues = JSON.parse(dataEl.dataset.values);
+
+  new Chart(document.getElementById('fraudTrendChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Security Risk %',
+        data: dataValues,
+        borderColor: '#ef4444',
+        borderWidth: 3,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        fill: true, tension: 0.4,
+        pointRadius: 4, pointBackgroundColor: '#ef4444'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { 
+        y: { beginAtZero: true, max: 100, border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

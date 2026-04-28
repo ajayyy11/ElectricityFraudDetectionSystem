@@ -1,0 +1,216 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard — EFD System{% endblock %}
+{% block page_title %}Real-time Dashboard{% endblock %}
+{% block page_sub %}Holistic view of your energy security and network status.{% endblock %}
+{% block extra_actions %}
+<div style="display:flex; gap:12px;">
+  <form action="{{ url_for('admin.send_usage_email', user_id=current_user.id) }}" method="POST">
+    <button type="submit" class="btn btn-secondary">
+      <i class="bi bi-envelope"></i> Email Report
+    </button>
+  </form>
+  <button class="btn btn-primary" onclick="window.location.reload();">
+    <i class="bi bi-arrow-clockwise"></i> Refresh Reading
+  </button>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Insight Banner ── -->
+<div class="insight-box">
+  <div class="insight-icon">🧠</div>
+  <div class="insight-content">
+    <b>AI Analysis Engine</b>
+    <span>{{ insight }}</span>
+  </div>
+</div>
+
+<!-- ── Intelligence Grid ── -->
+<div class="stat-grid">
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-epi-i"><i class="bi bi-activity"></i></div>
+      <div class="badge {% if epi > 80 %}badge-low{% else %}badge-medium{% endif %}">
+        {% if epi_change >= 0 %}+{{ epi_change }}{% else %}{{ epi_change }}{% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="stat-value">{{ epi }}</div>
+      <div class="stat-label">Energy Index</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-fraud-i"><i class="bi bi-shield-lock"></i></div>
+      <div class="badge {% if fraud > 50 %}badge-high{% elif fraud > 25 %}badge-medium{% else %}badge-low{% endif %}">
+        Risk Level
+      </div>
+    </div>
+    <div>
+      <div class="stat-value">{{ fraud }}%</div>
+      <div class="stat-label">Fraud Probability</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-usage-i"><i class="bi bi-lightning"></i></div>
+      <div class="badge badge-low">{{ month_change }}%</div>
+    </div>
+    <div>
+      <div class="stat-value">{{ usage }} <small style="font-size:12px; vertical-align:middle;">kWh</small></div>
+      <div class="stat-label">Current Usage</div>
+    </div>
+  </div>
+
+  <div class="card stat-card">
+    <div class="stat-header">
+      <div class="stat-icon-s stat-alert-i"><i class="bi bi-bell"></i></div>
+      <div class="badge badge-medium">{{ active_alerts }} Alert</div>
+    </div>
+    <div>
+      <div class="stat-value">{{ active_alerts }}</div>
+      <div class="stat-label">Active Anomalies</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Main Visualization ── -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Energy Consumption Analytics</span>
+      <span style="color:var(--primary); font-weight:800;">LIVE</span>
+    </div>
+    <div class="chart-wrapper" style="margin-top:20px; min-height:300px;">
+      <div id="usageApexChart"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Risk Distribution</div>
+    <div class="chart-wrapper-sm" style="margin-top:20px; min-height:250px;">
+      <div id="fraudApexPie"></div>
+    </div>
+    <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; justify-content:space-between; font-size:13px;">
+        <span style="color:var(--text-muted);">Normal Readings</span>
+        <span style="font-weight:700; color:var(--accent);">{{ normal_count }}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:13px;">
+        <span style="color:var(--text-muted);">Flagged Readings</span>
+        <span style="font-weight:700; color:var(--danger);">{{ fraud_count }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Network History ── -->
+<div class="card table-card">
+  <div class="table-header">
+    <div class="card-title">Recent Network Activity</div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Record ID</th>
+        <th>Usage (kWh)</th>
+        <th>Avg Base</th>
+        <th>Security Status</th>
+        <th>EPI Performance</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in history %}
+      <tr class="history-row" data-usage="{{ record.usage }}"
+        data-time="{{ record.timestamp.strftime('%H:%M') if record.timestamp else loop.index }}"
+        data-fraud="{{ record.fraud_probability }}">
+        <td>
+          {% if record.fraud_probability > 0.5 %}
+          <span class="badge badge-high">Threat</span>
+          {% else %}
+          <span class="badge badge-low">Normal</span>
+          {% endif %}
+        </td>
+        <td style="font-weight:600;">{{ record.usage }}</td>
+        <td style="font-weight:600;">{{ record.epi_score }}</td>
+        <td style="color:var(--text-muted); font-size:12px;">
+          {{ record.timestamp.strftime('%d %b, %H:%M') if record.timestamp else 'N/A' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // 1. Initialize ApexCharts with skeleton/initial data
+    const usageOptions = {
+        series: [{ name: 'Usage (kWh)', data: [] }],
+        chart: { 
+            type: 'area', height: 320, toolbar: { show: false }, zoom: { enabled: false },
+            animations: { enabled: true, easing: 'easeinout', speed: 800 }
+        },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 3, colors: ['#6366f1'] },
+        fill: {
+            type: 'gradient',
+            gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [20, 100] }
+        },
+        xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
+        yaxis: { labels: { style: { colors: '#94a3b8' } } },
+        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+        colors: ['#6366f1'],
+        markers: { size: 4, colors: ['#6366f1'], strokeColors: '#fff', strokeWidth: 2 }
+    };
+
+    const pieOptions = {
+        series: [0, 0],
+        chart: { type: 'donut', height: 250 },
+        labels: ['Secure', 'Threat'],
+        colors: ['#10b981', '#ef4444'],
+        plotOptions: { pie: { donut: { size: '75%', labels: { show: true, total: { show: true, label: 'Samples' } } } } },
+        dataLabels: { enabled: false },
+        legend: { show: false }
+    };
+
+    const usageChart = new ApexCharts(document.querySelector("#usageApexChart"), usageOptions);
+    const pieChart = new ApexCharts(document.querySelector("#fraudApexPie"), pieOptions);
+
+    usageChart.render();
+    pieChart.render();
+
+    // 2. Real-time Polling Function
+    async function updateDashboard() {
+        try {
+            const response = await fetch("{{ url_for('dashboard.dashboard_data') }}");
+            const data = await response.json();
+
+            // Update Line Chart
+            usageChart.updateSeries([{ name: 'Usage (kWh)', data: data.usage }]);
+            usageChart.updateOptions({ xaxis: { categories: data.usage.map((_, i) => `#${i + 1}`) } });
+
+            // Update Pie Chart
+            pieChart.updateSeries([data.normal_count, data.fraud_count]);
+            
+            console.log("Dashboard data synchronized.");
+        } catch (err) {
+            console.error("Polling error:", err);
+        }
+    }
+
+    // Initial load + poll every 10 seconds
+    updateDashboard();
+    setInterval(updateDashboard, 10000);
+});
+</script>
+{% endblock %}

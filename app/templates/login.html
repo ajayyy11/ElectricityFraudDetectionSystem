@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Login — EFD Platform{% endblock %}
+
+{% block content %}
+<div class="auth-header" style="text-align: center; margin-bottom: 40px;">
+    <h2 style="color:#fff; font-weight:800; font-size: 28px; margin-bottom:8px; letter-spacing: -0.5px;">Welcome back</h2>
+    <p style="color:var(--text-muted); font-size:14px;">Log in to your energy sentinel account</p>
+</div>
+
+<form method="POST">
+    <div class="form-group">
+        <label>Username or Email</label>
+        <input type="text" name="username" class="form-control" placeholder="Enter your identity or email" required autocomplete="username">
+    </div>
+    <div class="form-group" style="margin-bottom: 32px;">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%; justify-content: center; padding: 16px;">
+        Secure Sign In <i class="bi bi-arrow-right-short"></i>
+    </button>
+</form>
+
+<div class="auth-footer text-center">
+    <p>New to the platform? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+</div>
+{% endblock %}

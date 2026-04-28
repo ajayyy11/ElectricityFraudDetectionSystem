@@ -1,7 +1,7 @@
 Flask
-Flash-Login
-Flask-MySQLdb
-mysqlclient
+Flask-Login
+Flask-SQLAlchemy
+python-dotenv
 numpy
 scipy
 pandas
@@ -9,4 +9,8 @@ scikit-learn
 matplotlib
 seaborn
 joblib
+flask-mail
+flask-talisman
+flask-limiter
 gunicorn
+Werkzeug
