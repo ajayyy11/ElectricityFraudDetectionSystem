@@ -1,5 +1,7 @@
 # Electricity Fraud Detection System
 
+![Python CI](https://github.com/ajayyy11/ElectricityFraudDetectionSystem/actions/workflows/ci.yml/badge.svg)
+
 A Flask web application that analyzes electricity-consumption patterns and flags potentially suspicious usage using a machine-learning workflow. It includes user-facing pages, usage comparisons, and a risk-oriented result view.
 
 > **Important:** A flagged result is an indicator for review, not proof of electricity theft. Model performance depends on the quality and representativeness of the training data.
