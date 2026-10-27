@@ -51,11 +51,15 @@ pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create a local `.env` file for configuration values required by the app. Set a unique, random `SECRET_KEY` before running the application. Do not commit secrets or production credentials.
+Copy `.env.example` to `.env`. Replace the placeholder `SECRET_KEY` with a unique random secret of at least 32 characters. Generate one with:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Do not commit `.env`, API credentials, or production secrets.
 
 ### 5. Start the application
-
-Use the entry point documented by the current project files. If your local checkout uses `app.py` as the entry point:
 
 ```bash
 python app.py
@@ -63,29 +67,51 @@ python app.py
 
 Then open http://127.0.0.1:5000 in your browser.
 
-## Machine-Learning Workflow
+## Tests
 
-1. Collect and validate usage inputs.
-2. Derive features from current and historical usage.
-3. Apply the preprocessing/scaling expected by the saved model.
-4. Generate a prediction and risk-oriented explanation.
-5. Review the result alongside the underlying usage data.
+Run the automated unit and route tests with:
 
-For a meaningful model evaluation, report metrics on a held-out dataset—such as precision, recall, F1 score, confusion matrix, and ROC-AUC where appropriate. Do not describe the model as production-validated unless those results have been measured.
+```bash
+pytest -q
+```
+
+The tests cover input validation, scoring calculations, and selected routes. They do not replace manual integration testing with the saved model artifacts and database configuration.
+
+## Machine-Learning Evaluation
+
+The repository includes `scripts/evaluate_model.py` to evaluate the saved model on a labeled CSV. The CSV must contain these columns:
+
+- `current_usage`
+- `avg_usage`
+- `fraud_label` — ground-truth binary label: `0` for non-fraud, `1` for fraud
+
+Example:
+
+```bash
+python scripts/evaluate_model.py path/to/held_out_data.csv
+```
+
+Optionally choose a probability threshold:
+
+```bash
+python scripts/evaluate_model.py path/to/held_out_data.csv --threshold 0.4
+```
+
+The script reports accuracy, precision, recall, F1, ROC-AUC (when both classes are present), a confusion matrix, and a classification report. Use a held-out dataset that was not used to train or tune the model. Do not publish performance claims until you have run the evaluation and reviewed the results.
 
 ## Security and Reliability Notes
 
-- Use a strong environment-provided secret key; never rely on a development fallback in production.
+- Use a strong environment-provided secret key.
 - Run with debug mode disabled outside local development.
 - Validate non-finite and out-of-range inputs and handle missing model files gracefully.
 - Keep model artifacts and training/evaluation instructions versioned or clearly documented.
 
 ## Future Improvements
 
-- Add reproducible model training and evaluation scripts.
-- Expand tests for validation, prediction, and authentication flows.
+- Add reproducible model training and dataset documentation.
+- Expand tests for prediction persistence and authentication flows.
 - Add deployment instructions and screenshots stored as normal image files.
-- Document the dataset source, limitations, and model metrics.
+- Document measured model metrics and limitations.
 
 ## Author
 
