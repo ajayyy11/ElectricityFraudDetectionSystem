@@ -77,7 +77,7 @@ Run the automated unit and route tests with:
 pytest -q
 ```
 
-The tests cover input validation, scoring calculations, and selected routes. They do not replace manual integration testing with the saved model artifacts and database configuration.
+The tests cover input validation, scoring calculations, selected routes, evaluation-feature validation, registration-role protection, and safe post-login redirects. They do not replace manual integration testing with the saved model artifacts and database configuration.
 
 ## Machine-Learning Evaluation
 
