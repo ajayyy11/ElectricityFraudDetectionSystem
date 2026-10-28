@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify, flash
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, flash, Response
 from flask_login import login_required, current_user
+import csv
+import io
 import joblib
 import os
 import random
@@ -43,7 +45,7 @@ def build_dashboard_context(page=1):
         previous_month_fraud = 1 if history_all[1].fraud_probability > 0.2 else 0
         current_month_fraud = 1 if history_all[0].fraud_probability > 0.2 else 0
         last_month_usage = history_all[1].usage
-        month_change = round(((current_usage - last_month_usage) / last_month_usage) * 100, 2)
+        month_change = round(((current_usage - last_month_usage) / last_month_usage) * 100, 2) if last_month_usage else 0
     else:
         previous_month_fraud = 0
         current_month_fraud = 0
@@ -64,7 +66,7 @@ def build_dashboard_context(page=1):
     epi_change = round(epi - avg_epi, 2) if history_all else 0
 
     # Pagination
-    per_page = 10 # Default
+    per_page = 10
     total = len(history_all)
     start = (page - 1) * per_page
     end = start + per_page
@@ -96,6 +98,7 @@ def build_dashboard_context(page=1):
         total_records=total,
         avg_epi=avg_epi
     )
+
 
 @dashboard.route("/")
 @login_required
@@ -146,6 +149,48 @@ def reports():
     return render_template("reports.html", **ctx)
 
 
+def _csv_safe(value):
+    """Prevent spreadsheet formula execution when opening exported text in Excel."""
+    if not isinstance(value, str):
+        return value
+    trimmed = value.lstrip()
+    if trimmed.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
+@dashboard.route("/reports/export.csv")
+@login_required
+def export_user_csv():
+    """Export only the signed-in user's own energy and fraud records."""
+    records = EnergyRecord.query.filter_by(user_id=current_user.id)\
+        .order_by(EnergyRecord.timestamp.desc(), EnergyRecord.id.desc()).all()
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow([
+        "Record ID", "Usage (kWh)", "Average Usage (kWh)",
+        "Fraud Risk (%)", "EPI Score", "Anomaly Status", "Explanation", "Timestamp"
+    ])
+
+    for record in records:
+        writer.writerow([
+            record.id,
+            record.usage,
+            record.avg_usage,
+            round(record.fraud_probability * 100, 2),
+            record.epi_score,
+            _csv_safe(record.anomaly_status or ""),
+            _csv_safe(record.reason or ""),
+            record.timestamp.strftime("%Y-%m-%d %H:%M:%S") if record.timestamp else "",
+        ])
+
+    response = Response("\ufeff" + output.getvalue(), mimetype="text/csv; charset=utf-8")
+    response.headers["Content-Disposition"] = 'attachment; filename="my_energy_fraud_report.csv"'
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @dashboard.route("/profile")
 @login_required
 def profile():
@@ -165,6 +210,7 @@ def profile():
         member_since=current_user.created_at.strftime("%B %d, %Y") if current_user.created_at else "N/A"
     )
 
+
 @dashboard.route('/profile/edit', methods=['POST'])
 @login_required
 def self_edit_user():
@@ -172,6 +218,7 @@ def self_edit_user():
     db.session.commit()
     flash('Profile updated successfully.', 'success')
     return redirect(url_for('dashboard.profile'))
+
 
 @dashboard.route('/api/dashboard-data')
 @login_required
