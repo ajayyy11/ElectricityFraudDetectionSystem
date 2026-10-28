@@ -5,9 +5,7 @@
 
 {% block content %}
 
-<!-- Summary Row -->
 <div class="stat-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom:24px;">
-<!-- Summary Row -->
 <div class="stat-grid" style="margin-bottom:24px;">
   <div class="card stat-card">
     <div class="stat-header">
@@ -32,14 +30,14 @@
 
 <div class="card table-card">
   <div class="table-header" style="display:flex; justify-content:space-between; align-items:center;">
-    <div class="card-title">Detailed Network Activity Log</div>
+    <div class="card-title">Detailed Energy Usage and Fraud History</div>
     <div style="display:flex; gap:12px;">
-      <a href="{{ url_for('admin.export_csv') }}" class="btn btn-secondary">
-        <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+      <a href="{{ url_for('dashboard.export_user_csv') }}" class="btn btn-secondary">
+        <i class="bi bi-file-earmark-spreadsheet"></i> Export My CSV
       </a>
     </div>
   </div>
-  
+
   <table class="data-table">
     <thead>
       <tr>
@@ -84,7 +82,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" style="text-align:center; padding:48px; color:var(--text-muted);">
+        <td colspan="8" style="text-align:center; padding:48px; color:var(--text-muted);">
           <i class="bi bi-inbox" style="font-size:32px; display:block; margin-bottom:12px;"></i>
           No records found in current history.
         </td>
@@ -101,7 +99,7 @@
         <a href="?page=1" class="page-btn">1</a>
         <span style="color:var(--text-muted);">...</span>
       {% endif %}
-      
+
       {% for p in range([1, current_page - 2]|max, [total_pages + 1, current_page + 3]|min) %}
         <a href="?page={{ p }}" class="page-btn {% if p == current_page %}active{% endif %}">{{ p }}</a>
       {% endfor %}
